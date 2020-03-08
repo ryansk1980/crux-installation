@@ -1,0 +1,457 @@
+﻿CRUX install handbook
+Installing From CD-ROM or removable flash drive
+
+     • Download the CRUX ISO image (crux-3.5.iso). To ensure that the download was successful,
+        examine its checksum using md5sum.
+
+ $ md5sum crux-3.5.iso
+
+Compare the output with the file crux-3.5.md5, which can be found in the same directory as the ISO
+image on the download site. If the checksums match, the download was successful and you can
+continue by burning the ISO image to a CD or writing it to a removable flash drive.
+
+     • The ISO image is bootable, just insert the newly-written CD or removable flash drive and
+        reboot your computer. Press Enter at the boot prompt (you might have to adjust the
+        root= parameter, depending on your hardware configuration).
+
+     • You will be automatically logged in as as root on tty1 (root has no password set).
+     • Create (if necessary) and format the partition(s) you want CRUX to be installed on.
+
+ $ fdisk /dev/sd?
+ $ mkfs.???? /dev/sd??
+ $ mkswap /dev/sd??
+
+Note
+
+Please keep in mind that SATA harddisks are usually detected as SCSI devices. The first SATA disk
+is called /dev/sda instead of /dev/hda. For more information about harddisk naming conventions
+please refer to the Linux Partition HOWTO.
+
+The amount of disk space required depends on how many packages are selected to install. It is
+recommended to have at least a 1G root partition (CRUX will use about 200MB-500MB, depending
+on your configuration).
+
+Note: UEFI
+
+For UEFI installation a GPT disklabel and an EFI system partition (ESP) are required in most
+cases. The ESP does not need to be very large (100MiB for example) and should be formatted with
+a FAT32 filesystem and flagged as bootable. When using UEFI the boot loader/manager will be
+installed in the ESP rather than the traditional method of installation into the Master Boot Record
+(MBR).
+
+CRUX supports all the filesystems supported as root filesystems by the linux kernel: btrfs, ext2,
+ext3, ext4, JFS, reiserfs and XFS. Further, it is highly recommended to separate the system data
+from user data, i.e. use a separate partition for /home (and possibly /var) since that will make your
+life a lot easier the day you want to upgrade/reinstall/remove your system.
+
+
+Note
+Make sure the appropriate userspace filesystem-tools are installed. xfsprogs, btrfs-progs, jfsutils
+and reiserfsprogs can be found in the opt repository.
+
+Note
+Make sure that any BIOS Virus Protection option is DISABLED as this option may prevent fdisk
+from writing new partitions correctly.
+
+     • Mount the partition on which you want to install this distribution.
+
+ $ mount /dev/sd?? /mnt
+
+If you want the installation to span more than one partition, mount those partitions as well. For
+example, if you want to have a different partition for /home or /var, then do:
+
+ $ mkdir /mnt/var
+ $ mount /dev/sd?? /mnt/var
+
+     • Activate your swap partition(s).
+
+ $ swapon /dev/sd??
+
+     • Type setup to start the package installation script. The script will ask where you mounted
+        your new root partition and which packages you want to install. Select the packages you
+        wish to install; it is recommended to install all the packages from core.
+
+Note: UEFI
+If installing a UEFI system make sure to select the efibootmgr and grub2-efi packages from the opt
+collection during the package selection phase.
+After the packages have finished installing, the setup script will display an installation log. Make
+sure the last line in the log says “0 error(s)”.
+If you missed/forgot to install certain packages, you can just mount the CRUX installation media
+and use pkgadd to install them.
+Screenshots of setup
+
+     • Now it's time to compile your kernel and do basic system configuration. The kernel
+        compilation requires that you “chroot” into your new CRUX installation.
+
+Note
+There is a shortcut command for creating the chroot environment: setup-chroot. This will execute
+all these steps at once.
+
+$ mount --bind /dev /mnt/dev
+ $ mount --bind /tmp /mnt/tmp
+ $ mount --bind /run /mnt/run
+ $ mount -t proc proc /mnt/proc
+ $ mount -t sysfs none /mnt/sys
+ $ mount -t devpts -o noexec,nosuid,gid=tty,mode=0620 devpts /mnt/dev/pts
+ (UEFI only) $ mount --bind /sys/firmware/efi/efivars
+/mnt/sys/firmware/efi/efivars
+ $ chroot /mnt /bin/bash
+
+     • Set the root password.
+
+ $ passwd
+
+     • Edit /etc/fstab to configure your filesystem(s). Editors vim and nano are available.
+     • Edit /etc/rc.conf to configure font, keyboard, timezone, hostname and services. See Section
+
+        "Configuration Variables in /etc/rc.conf" for details about /etc/rc.conf.
+     • Generate locales for your system. See section "Generating locales" for more information.
+     • Edit /etc/rc.d/net, /etc/hosts and /etc/resolv.conf to configure your network
+
+        (ip-address/gateway/hostname/domain/dns).
+     • Go to /usr/src/linux-4.19.x, configure and compile a new kernel.
+
+Note
+
+Make sure to include drivers needed to bring up your root filesystem! Such as "SCSI disk support",
+filesystem and disk controller. For example:
+
+     • CONFIG_SATA_AHCI=y
+     • CONFIG_BLK_DEV_SD=y
+     • CONFIG_EXT4_FS=y
+
+Note
+
+The setup program installs a configuration file /usr/src/linux-4.19.x/.config which is a good starting
+point for a custom kernel, because all needed options, like CONFIG_DEVTMPFS, are enabled.
+
+ $ cd /usr/src/linux-4.19.x
+ $ make menuconfig
+ $ make all
+ $ make modules_install
+ $ cp arch/x86/boot/bzImage /boot/vmlinuz
+ $ cp System.map /boot
+
+     • If installing a BIOS-based system:
+              • Edit /etc/lilo.conf to boot the kernel you just compiled and run lilo to make the new
+                 system bootable.
+
+        If you plan to use GRUB (which is included in the ISO) make sure you read the installation
+        notes in the appendix of this document.
+     • If installing a UEFI-based system:
+• Install grub2 into the ESP using the command grub-install /boot/efi.
+
+• Generate a grub2 configuration file using the command grub-mkconfig -o
+                 /boot/grub/grub.cfg.
+        Replace /boot/efi with the location of the mounted ESP. If efibootmgr was selected during
+        the package selection phase grub-install will automatically create a boot entry and make it
+        active.
+        More information about UEFI and other boot loader/manager options can be found in the
+        CRUX wiki at https://crux.nu/Wiki/UEFI.
+     • Remove the CRUX installation media from your computer and reboot from harddisk.
+
+ $ mount /dev/sd?? /mnt
+
+If you want the installation to span more than one partition, mount those partitions as well. For
+example, if you want to have a different partition for /home or /var, then do:
+
+ $ mkdir /mnt/var
+ $ mount /dev/sd?? /mnt/var
+
+     • Activate your swap partition(s).
+
+ $ swapon /dev/sd??
+
+     • Type setup to start the package installation script. The script will ask where you mounted
+        your new root partition and which packages you want to install. Select the packages you
+        wish to install; it is recommended to install all the packages from core.
+
+Note: UEFI
+If installing a UEFI system make sure to select the efibootmgr and grub2-efi packages from the opt
+collection during the package selection phase.
+After the packages have finished installing, the setup script will display an installation log. Make
+sure the last line in the log says “0 error(s)”.
+If you missed/forgot to install certain packages, you can just mount the CRUX installation media
+and use pkgadd to install them.
+Screenshots of setup
+
+     • Now it's time to compile your kernel and do basic system configuration. The kernel
+        compilation requires that you “chroot” into your new CRUX installation.
+
+Note
+There is a shortcut command for creating the chroot environment: setup-chroot. This will execute
+all these steps at once.
+
+ $ mount --bind /dev /mnt/dev
+ $ mount --bind /tmp /mnt/tmp
+ $ mount --bind /run /mnt/run
+ $ mount -t proc proc /mnt/proc
+ $ mount -t sysfs none /mnt/sys
+$ mount -t devpts -o noexec,nosuid,gid=tty,mode=0620 devpts /mnt/dev/pts
+
+(UEFI only) $ mount --bind /sys/firmware/efi/efivars
+/mnt/sys/firmware/efi/efivars
+ $ chroot /mnt /bin/bash
+   • Set the root password.
+
+$ passwd
+     • Edit /etc/fstab to configure your filesystem(s). Editors vim and nano are available.
+
+My /etc/fstab file
+#
+# /etc/fstab: static file system information
+#
+# <file system> <dir> <type> <options>
+<dump> <pass>
+/dev/sda1
+/dev/sda2
+/dev/sda3
+/dev/sda4
+/dev/sda5
+/dev/sda6
+/dev/sda7
+/dev/sda8
+#/dev/sdb1
+#tmp
+ /boot vfat defaults
+ / ext4 defaults
+ /usr ext4 defaults
+ swap swap defaults
+ /tmp ext4 defaults
+ /var ext4 defaults
+ /opt ext4 defaults
+ /home ext4 defaults
+
+   /home/storage ext4 defaults
+/tmp tmpfs defaults
+     0 2
+0 1
+
+    0 2
+    0 0
+     0 2
+    0 2
+   0 2
+     0 2
+
+         0 2
+  0 0
+# the following entries are required for proper system operation
+devpts
+/dev/pts devpts noexec,nosuid,gid=tty,mode=0620 0 0
+shm
+/dev/shm tmpfs defaults
+0 0
+# End of file
+• Edit /etc/rc.conf to configure font, keyboard, timezone, hostname and services. See Section
+
+   "Configuration Variables in /etc/rc.conf" for details about /etc/rc.conf.
+
+• Generate locales for your system. See section "Generating locales" for more information.
+
+   Generating locales
+
+• # localedef -i en_US -f ISO-8859-1 en_US
+• # localedef -i en_US -f ISO-8859-1 en_US.ISO-8859-1
+• # localedef -i en_US -f UTF-8 en_US.UTF-8
+
+• # localedef -i si_LK -f UTF-8 si_LK.UTF-8
+rc.modules configuration
+
+# End of file
+bash-5.0$ cat /etc/rc.modules
+#!/bin/bash
+#
+# /etc/rc.modules: module initialization script
+#
+
+/sbin/depmod -a
+
+modprobe nvidia-drm nvidia-modeset nvidia-uvm nvidia
+modprobe ath10k_pci
+modprobe vboxdrv vboxnetadp vboxnetflt
+modprobe 88XXau
+
+# End of file
+
+rc.conf configuration
+
+#
+# /etc/rc.conf: system configuration
+#
+
+FONT=default
+KEYMAP=us
+TIMEZONE=Asia/Bishkek
+HOSTNAME=anton
+SYSLOG=sysklogd
+SERVICES=(lo net crond nft sshd dbus xdm )
+
+# End of file
+
+     • Edit /etc/rc.d/net, /etc/hosts and /etc/resolv.conf to configure your network
+        (ip-address/gateway/hostname/domain/dns).
+
+     • Go to /usr/src/linux-5.x.x, configure and compile a new kernel.
+
+Note
+Make sure to include drivers needed to bring up your root filesystem! Such as "SCSI disk support",
+filesystem and disk controller. For example:
+
+     • CONFIG_SATA_AHCI=y
+     • CONFIG_BLK_DEV_SD=y
+     • CONFIG_EXT4_FS=y
+
+Note
+The setup program installs a configuration file /usr/src/linux-4.19.x/.config which is a good starting
+point for a custom kernel, because all needed options, like CONFIG_DEVTMPFS, are enabled.
+
+ $ cd /usr/src/linux-4.19.x
+ $ make menuconfig
+ $ make all
+ $ make modules_install
+ $ cp arch/x86/boot/bzImage /boot/vmlinuz
+ $ cp System.map /boot
+
+useradd
+
+# useradd -m -s /bin/bash -G audio,lp,video,wheel,scanner -U new_username
+# passwd new_username
+Enter new UNIX password:
+Retype new UNIX password:
+passwd: password updated successfully
+
+Add the new_username to /etc/sudoers
+
+# cat >> /etc/sudoers << EOF
+> new_username ALL=(ALL) ALL
+> EOF
+
+Lockout root from login into console or from SSH in.
+
+     • If installing a BIOS-based system:
+              • Edit /etc/lilo.conf to boot the kernel you just compiled and run lilo to make the new
+                 system bootable.
+
+        If you plan to use GRUB (which is included in the ISO) make sure you read the installation
+        notes in the appendix of this document.
+     • If installing a UEFI-based system:
+
+              • Install grub2 into the ESP using the command grub-install /boot/efi.
+              • Generate a grub2 configuration file using the command grub-mkconfig -o
+
+                 /boot/grub/grub.cfg.
+        Replace /boot/efi with the location of the mounted ESP. If efibootmgr was selected during
+        the package selection phase grub-install will automatically create a boot entry and make it
+        active.
+        More information about UEFI and other boot loader/manager options can be found in the
+        CRUX wiki at https://crux.nu/Wiki/UEFI.
+• Remove the CRUX installation media from your computer and reboot from harddisk.Installing From CD-ROM or removable flash drive
+     • Download the CRUX ISO image (crux-3.5.iso). To ensure that the download was successful,
+        examine its checksum using md5sum.
+
+ $ md5sum crux-3.5.iso
+
+Compare the output with the file crux-3.5.md5, which can be found in the same directory as the ISO
+image on the download site. If the checksums match, the download was successful and you can
+continue by burning the ISO image to a CD or writing it to a removable flash drive.
+
+     • The ISO image is bootable, just insert the newly-written CD or removable flash drive and
+        reboot your computer. Press Enter at the boot prompt (you might have to adjust the
+        root= parameter, depending on your hardware configuration).
+
+     • You will be automatically logged in as as root on tty1 (root has no password set).
+     • Create (if necessary) and format the partition(s) you want CRUX to be installed on.
+
+ $ fdisk /dev/sd?
+ $ mkfs.???? /dev/sd??
+ $ mkswap /dev/sd??
+
+Note
+Please keep in mind that SATA harddisks are usually detected as SCSI devices. The first SATA disk
+is called /dev/sda instead of /dev/hda. For more information about harddisk naming conventions
+please refer to the Linux Partition HOWTO.
+The amount of disk space required depends on how many packages are selected to install. It is
+recommended to have at least a 1G root partition (CRUX will use about 200MB-500MB, depending
+on your configuration).
+
+Note: UEFI
+For UEFI installation a GPT disklabel and an EFI system partition (ESP) are required in most
+cases. The ESP does not need to be very large (100MiB for example) and should be formatted with
+a FAT32 filesystem and flagged as bootable. When using UEFI the boot loader/manager will be
+installed in the ESP rather than the traditional method of installation into the Master Boot Record
+(MBR).
+
+GPT and UEFI
+NOTE: For this system we will be using UEFI, the boot partition is on /dev/sda1 it is a FAT
+filesystem and the root partition is on /dev/sda2. The
+kernel has been compiled and copied into /boot, but we will be changing this.
+
+At the moment our kernel and initrds are in /boot. We will create the folders /boot/EFI and move
+our kernel into that directory. If you are using an
+initrd move them as well.
+# mkdir /boot/EFI
+# mv /boot/vmlinuz /boot/EFI/
+
+Next we create the syslinux directory and copy the relevant files.
+# mkdir /boot/EFI/syslinux
+# cp /usr/share/syslinux/efi/syslinux.efi /boot/EFI/syslinux
+# cp /usr/share/syslinux/efi/ldlinux.e64 /boot/EFI/syslinux
+
+We then edit our configuration file exactly as we did above, however, this time our configuration
+file is located under /boot/EFI/syslinux/.
+# vi /boot/EFI/syslinux/syslinux.cfg
+
+           PROMPT 1
+           TIMEOUT 10
+           DEFAULT CRUX
+
+                      LINUX ../vmlinuz
+                      APPEND root=/dev/sda2 rw
+
+Or if you are using an INITRD or loading something like the intel-ucode, then your configuration
+might look something like this.
+# vi /boot/EFI/syslinux/syslinux.cfg
+
+           PROMPT 1
+           TIMEOUT 10
+           DEFAULT CRUX
+
+                      LINUX ../vmlinuz
+	          APPEND root=/dev/sda2 rw
+
+
+
+INITRD ../freestanding-00-intel-ucode.cpio,../freestanding-i915-
+firmware.cpio.xz
+
+Now we are going to install to UEFI. Assuming that you understand how UEFI works we are just
+going straight to the actual command. If you are
+unsure then I suggest you should do some further reading before continuing to the next step. https://
+crux.nu/Wiki/UEFI.
+The command we will be using is efibootmgr. The device we are using is sda and the partition is
+partition 1. The name of the loader the UEFI will use
+is syslinux.efi and we will create the label CRUX
+# efibootmgr -c -d /dev/sda -p 1 -l \\EFI\\syslinux\\syslinux.efi -L CRUX -v
+
+That’s it! You should now have a fully bootable CRUX system with syslinux.
+As a further note, syslinux gets all of its information from the configuration file syslinux.cfg. The
+only thing you need to do when modifying syslinux
+is edit the configuration file. You do not need to do anything else. Syslinux will read the
+configuration file upon the next boot cycle.
+
+CRUX supports all the filesystems supported as root filesystems by the linux kernel: btrfs, ext2,
+ext3, ext4, JFS, reiserfs and XFS. Further, it is highly recommended to separate the system data
+from user data, i.e. use a separate partition for /home (and possibly /var) since that will make your
+life a lot easier the day you want to upgrade/reinstall/remove your system.
+
+Note
+Make sure the appropriate userspace filesystem-tools are installed. xfsprogs, btrfs-progs, jfsutils
+and reiserfsprogs can be found in the opt repository.
+
+Note
+Make sure that any BIOS Virus Protection option is DISABLED as this option may prevent fdisk
+from writing new partitions correctly.
+• Mount the partition on which you want to install this distribution.
+
+
