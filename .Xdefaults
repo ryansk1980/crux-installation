@@ -1,0 +1,3 @@
+xterm*background: black
+xterm*foreground: white
+!xterm*vt100*geometry:90x26 
