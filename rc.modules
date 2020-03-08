@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# /etc/rc.modules: module initialization script
+#
+
+/sbin/depmod -a
+
+modprobe nvidia-drm nvidia-modeset nvidia-uvm nvidia 
+modprobe ath10k_pci
+modprobe vboxdrv 
+modprobe vboxnetadp 
+modprobe vboxnetflt 
+modprobe 88XXau
+# End of file
