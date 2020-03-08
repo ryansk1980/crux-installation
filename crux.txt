@@ -150,23 +150,15 @@ point for a custom kernel, because all needed options, like CONFIG_DEVTMPFS, are
         CRUX wiki at https://crux.nu/Wiki/UEFI.
      • Remove the CRUX installation media from your computer and reboot from harddisk.
 
- $ mount /dev/sd?? /mnt
 
-If you want the installation to span more than one partition, mount those partitions as well. For
-example, if you want to have a different partition for /home or /var, then do:
 
- $ mkdir /mnt/var
- $ mount /dev/sd?? /mnt/var
-
-     • Activate your swap partition(s).
-
- $ swapon /dev/sd??
-
-     • Type setup to start the package installation script. The script will ask where you mounted
-        your new root partition and which packages you want to install. Select the packages you
-        wish to install; it is recommended to install all the packages from core.
-
-Note: UEFI
+My /etc/fstab file
+#
+# /etc/fstab: static file system information
+#
+# <file system> <dir> <type> <options>
+<dump> <pass>
+/dev/sda1Note: UEFI
 If installing a UEFI system make sure to select the efibootmgr and grub2-efi packages from the opt
 collection during the package selection phase.
 After the packages have finished installing, the setup script will display an installation log. Make
@@ -194,48 +186,6 @@ $ mount -t devpts -o noexec,nosuid,gid=tty,mode=0620 devpts /mnt/dev/pts
  $ chroot /mnt /bin/bash
    • Set the root password.
 
-$ passwd
-     • Edit /etc/fstab to configure your filesystem(s). Editors vim and nano are available.
-
-My /etc/fstab file
-#
-# /etc/fstab: static file system information
-#
-# <file system> <dir> <type> <options>
-<dump> <pass>
-/dev/sda1
-/dev/sda2
-/dev/sda3
-/dev/sda4
-/dev/sda5
-/dev/sda6
-/dev/sda7
-/dev/sda8
-#/dev/sdb1
-#tmp
- /boot vfat defaults
- / ext4 defaults
- /usr ext4 defaults
- swap swap defaults
- /tmp ext4 defaults
- /var ext4 defaults
- /opt ext4 defaults
- /home ext4 defaults
-
-   /home/storage ext4 defaults
-/tmp tmpfs defaults
-     0 2
-0 1
-
-    0 2
-    0 0
-     0 2
-    0 2
-   0 2
-     0 2
-
-         0 2
-  0 0
 # the following entries are required for proper system operation
 devpts
 /dev/pts devpts noexec,nosuid,gid=tty,mode=0620 0 0
@@ -417,8 +367,8 @@ might look something like this.
            TIMEOUT 10
            DEFAULT CRUX
 
-                      LINUX ../vmlinuz
-	          APPEND root=/dev/sda2 rw
+           LINUX ../vmlinuz
+	   APPEND root=/dev/sda2 rw
 
 
 
